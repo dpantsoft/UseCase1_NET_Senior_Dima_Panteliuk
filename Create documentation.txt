@@ -1,0 +1,741 @@
+
+I need a readme for my app called CountryList
+	Application description: 2 paragraphs, 4-10 Sentences.
+	Information on how to run the developed application locally.
+	At least 10 examples of how to use the developed endpoint.
+
+here is main contrlloer
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
+using System.Net.Http;
+using System.Threading.Tasks;
+using System.Text.Json;
+using UseCase1.Services; // Add the services namespace
+using System.Collections.Generic;
+using UseCase1.Models;
+
+namespace UseCase1.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class CountriesController : ControllerBase
+    {
+        private readonly IHttpClientFactory _clientFactory;
+        private readonly ICountryService _countryService;  // 1. Inject the country service
+        private readonly string _countriesApiUrl;
+        private readonly JsonSerializerOptions _serializerOptions;
+
+        public CountriesController(IHttpClientFactory clientFactory, IConfiguration configuration, ICountryService countryService)  // 2. Add the ICountryService in constructor
+        {
+            _clientFactory = clientFactory;
+            _countryService = countryService;   // 3. Assign the country service
+            _countriesApiUrl = configuration.GetValue<string>("CountriesApi:Url");
+
+            _serializerOptions = new JsonSerializerOptions();
+            _serializerOptions.Converters.Add(new CountryConverter());
+
+        }
+
+        [HttpGet("GetCountries")]
+        public async Task<IActionResult> GetCountries(
+            [FromQuery] string? searchString,
+            [FromQuery] int? populationLessThan = null,    // Filter for population
+            [FromQuery] int pageNumber = 1,       // For pagination
+            [FromQuery] int pageSize = 10,        // Default page size is set to 10
+            [FromQuery] string sortAttribute = "" // For sorting
+        )
+        {
+            var client = _clientFactory.CreateClient();
+
+            try
+            {
+                var response = await client.GetStringAsync(_countriesApiUrl);
+                var countries = JsonSerializer.Deserialize<List<Country>>(response, _serializerOptions);
+
+                // 1. Filter countries by name if searchString is provided
+                if (!string.IsNullOrWhiteSpace(searchString))
+                {
+                    countries = _countryService.FilterCountriesByName(countries, searchString).ToList();
+                }
+
+                // 1.1 Filter countries by population if populationLessThan is provided
+                if (populationLessThan.HasValue && populationLessThan.Value > 0)
+                {
+                    countries = _countryService.FilterCountriesByPopulation(countries, populationLessThan.Value).ToList();
+                }
+
+                // 2. Sort countries by the given attribute if provided
+                if (!string.IsNullOrWhiteSpace(sortAttribute))
+                {
+                    countries = _countryService.SortCountriesByName(countries, sortAttribute).ToList();
+                }
+
+                // 3. Paginate the list of countries
+                countries = _countryService.GetCountriesByPage(countries, pageNumber, pageSize).ToList();
+
+                return Ok(countries);
+            }
+            catch (HttpRequestException e)
+            {
+                return BadRequest($"Error fetching data from REST Countries API: {e.Message}");
+            }
+        }        
+    }
+}
+
+ChatGPT
+README for CountryList App
+Application Description
+CountryList is a web application designed to provide users with a comprehensive list of countries. With its powerful filters, users can search for countries based on certain criteria such as population, name, and more. The application interfaces with an external RESTful Countries API, bringing together a seamless combination of data extraction and user experience. Beyond just displaying countries, the application offers pagination, sorting, and filtering functionalities, ensuring that users can narrow down to the precise list they're seeking with minimal effort.
+
+Designed with simplicity and efficiency in mind, CountryList is the go-to application for those who wish to explore or learn more about the nations of the world. By leveraging the potential of ASP.NET Core, the application stands out in terms of performance, scalability, and ease of use.
+
+Running the Application Locally
+Ensure you have .NET Core SDK installed on your machine.
+Clone the repository or download the source code.
+Navigate to the root directory of the project using your terminal or command prompt.
+Restore the project dependencies using the command:
+bash
+Copy code
+dotnet restore
+To run the application, use the command:
+bash
+Copy code
+dotnet run
+Once running, you can access the application by navigating to http://localhost:5000 or the port displayed in the terminal.
+Using the Developed Endpoint
+The main endpoint for retrieving countries is the GetCountries endpoint which supports multiple query parameters for filtering, sorting, and pagination.
+
+Here are 10 examples demonstrating how to use the GetCountries endpoint:
+
+Get the first 10 countries (default behavior):
+
+bash
+Copy code
+GET /api/Countries/GetCountries
+Search for countries containing the name "India":
+
+bash
+Copy code
+GET /api/Countries/GetCountries?searchString=India
+Fetch countries with a population less than 1 million:
+
+bash
+Copy code
+GET /api/Countries/GetCountries?populationLessThan=1000000
+Retrieve the second page of countries with a default page size of 10:
+
+bash
+Copy code
+GET /api/Countries/GetCountries?pageNumber=2
+Get 20 countries per page:
+
+bash
+Copy code
+GET /api/Countries/GetCountries?pageSize=20
+Sort countries by name:
+
+bash
+Copy code
+GET /api/Countries/GetCountries?sortAttribute=name
+Search for countries containing "land" and sort by name:
+
+bash
+Copy code
+GET /api/Countries/GetCountries?searchString=land&sortAttribute=name
+Fetch countries with a population less than 500,000 and sort by name:
+
+bash
+Copy code
+GET /api/Countries/GetCountries?populationLessThan=500000&sortAttribute=name
+Retrieve the third page of countries with a page size of 5:
+
+bash
+Copy code
+GET /api/Countries/GetCountries?pageNumber=3&pageSize=5
+Combine multiple filters: search for countries with "United" in the name, with a population less than 50 million, sorted by name, and get the second page with 15 countries per page:
+
+bash
+Copy code
+GET /api/Countries/GetCountries?searchString=United&populationLessThan=50000000&sortAttribute=name&pageNumber=2&pageSize=15
+Remember to adjust the base URL (http://localhost:5000) accordingly if you're using a different domain or port number.
+
+
+
+
+User
+rewrite this doc with baseURL http://localhost:5159/
+and metion swagger endpoint
+ChatGPT
+README for CountryList App
+Application Description
+CountryList is a web application designed to offer users a detailed list of countries. Through its robust filtering capabilities, users can sift through countries based on specific criteria such as population, name, and more. The application interfaces with an external RESTful Countries API, harmonizing data extraction and user experience seamlessly. Beyond merely listing countries, the application introduces pagination, sorting, and filtering features, ensuring users can pinpoint their desired list effortlessly.
+
+Crafted for clarity and efficiency, CountryList stands as the preferred application for those eager to delve into or understand more about the world's nations. Capitalizing on the capabilities of ASP.NET Core, this application is distinguished by its performance, scalability, and user-friendly nature.
+
+Running the Application Locally
+Ensure .NET Core SDK is set up on your computer.
+Clone the repository or download the source files.
+Transition to the project's root directory using your terminal or command prompt.
+To restore the project dependencies, input the command:
+bash
+Copy code
+dotnet restore
+To kickstart the application, type:
+bash
+Copy code
+dotnet run
+After activation, access the application by directing to http://localhost:5159 or the port showcased in the terminal.
+Using the Developed Endpoint
+The primary endpoint designed for procuring countries is GetCountries. It accommodates multiple query parameters for concise filtering, orderly sorting, and straightforward pagination.
+
+Below are 10 instances illustrating the utilization of the GetCountries endpoint:
+
+Retrieve the initial 10 countries (standard operation):
+
+bash
+Copy code
+GET http://localhost:5159/api/Countries/GetCountries
+Search for countries featuring the name "India":
+
+bash
+Copy code
+GET http://localhost:5159/api/Countries/GetCountries?searchString=India
+Fetch countries possessing a population below 1 million:
+
+bash
+Copy code
+GET http://localhost:5159/api/Countries/GetCountries?populationLessThan=1000000
+Obtain the second page of countries, using the default 10 countries per page:
+
+bash
+Copy code
+GET http://localhost:5159/api/Countries/GetCountries?pageNumber=2
+Retrieve 20 countries per page:
+
+bash
+Copy code
+GET http://localhost:5159/api/Countries/GetCountries?pageSize=20
+Arrange countries by name:
+
+bash
+Copy code
+GET http://localhost:5159/api/Countries/GetCountries?sortAttribute=name
+Filter countries containing "land" and then sequence by name:
+
+bash
+Copy code
+GET http://localhost:5159/api/Countries/GetCountries?searchString=land&sortAttribute=name
+Source countries with populations under 500,000, ordered by name:
+
+bash
+Copy code
+GET http://localhost:5159/api/Countries/GetCountries?populationLessThan=500000&sortAttribute=name
+Access the third set of countries, taking 5 countries per page:
+
+bash
+Copy code
+GET http://localhost:5159/api/Countries/GetCountries?pageNumber=3&pageSize=5
+Fuse multiple filters: isolate countries incorporating "United" in the name, with populations under 50 million, in name sequence, and acquire the second page showing 15 countries:
+
+bash
+Copy code
+GET http://localhost:5159/api/Countries/GetCountries?searchString=United&populationLessThan=50000000&sortAttribute=name&pageNumber=2&pageSize=15
+Swagger Endpoint
+For comprehensive API documentation, you can utilize the Swagger UI by navigating to:
+
+bash
+Copy code
+http://localhost:5159/swagger
+Swagger provides an interactive way to visualize and test your API's endpoints. Make sure to explore this tool to better understand the capabilities and functionalities of the CountryList app.
+
+
+
+
+User
+convert to md syntaxt last response
+ChatGPT
+Certainly! Here's the content in Markdown syntax:
+
+README for CountryList App
+Application Description
+CountryList is a web application designed to offer users a detailed list of countries. Through its robust filtering capabilities, users can sift through countries based on specific criteria such as population, name, and more. The application interfaces with an external RESTful Countries API, harmonizing data extraction and user experience seamlessly. Beyond merely listing countries, the application introduces pagination, sorting, and filtering features, ensuring users can pinpoint their desired list effortlessly.
+
+Crafted for clarity and efficiency, CountryList stands as the preferred application for those eager to delve into or understand more about the world's nations. Capitalizing on the capabilities of ASP.NET Core, this application is distinguished by its performance, scalability, and user-friendly nature.
+
+Running the Application Locally
+Ensure .NET Core SDK is set up on your computer.
+Clone the repository or download the source files.
+Transition to the project's root directory using your terminal or command prompt.
+To restore the project dependencies, input the command:
+bash
+Copy code
+dotnet restore
+To kickstart the application, type:
+bash
+Copy code
+dotnet run
+After activation, access the application by directing to http://localhost:5159 or the port showcased in the terminal.
+Using the Developed Endpoint
+The primary endpoint designed for procuring countries is GetCountries. It accommodates multiple query parameters for concise filtering, orderly sorting, and straightforward pagination.
+
+Below are 10 instances illustrating the utilization of the GetCountries endpoint:
+
+Retrieve the initial 10 countries (standard operation):
+
+markdown
+Copy code
+GET http://localhost:5159/api/Countries/GetCountries
+Search for countries featuring the name "India":
+
+markdown
+Copy code
+GET http://localhost:5159/api/Countries/GetCountries?searchString=India
+Fetch countries possessing a population below 1 million:
+
+markdown
+Copy code
+GET http://localhost:5159/api/Countries/GetCountries?populationLessThan=1000000
+Obtain the second page of countries, using the
+
+
+
+
+User
+convert to raw markdown, not parse it
+ChatGPT
+
+11 / 11
+
+Of course! Below is the raw Markdown syntax for the documentation:
+
+markdown
+Copy code
+# README for CountryList App
+
+## Application Description
+
+CountryList is a web application designed to offer users a detailed list of countries. Through its robust filtering capabilities, users can sift through countries based on specific criteria such as population, name, and more. The application interfaces with an external RESTful Countries API, harmonizing data extraction and user experience seamlessly. Beyond merely listing countries, the application introduces pagination, sorting, and filtering features, ensuring users can pinpoint their desired list effortlessly.
+
+Crafted for clarity and efficiency, CountryList stands as the preferred application for those eager to delve into or understand more about the world's nations. Capitalizing on the capabilities of ASP.NET Core, this application is distinguished by its performance, scalability, and user-friendly nature.
+
+## Running the Application Locally
+
+1. Ensure .NET Core SDK is set up on your computer.
+2. Clone the repository or download the source files.
+3. Transition to the project's root directory using your terminal or command prompt.
+4. To restore the project dependencies, input the command:
+   \```
+   dotnet restore
+   \```
+5. To kickstart the application, type:
+   \```
+   dotnet run
+   \```
+6. After activation, access the application by directing to `http://localhost:5159` or the port showcased in the terminal.
+
+## Using the Developed Endpoint
+
+The primary endpoint designed for procuring countries is `GetCountries`. It accommodates multiple query parameters for concise filtering, orderly sorting, and straightforward pagination.
+
+Below are 10 instances illustrating the utilization of the `GetCountries` endpoint:
+
+1. Retrieve the initial 10 countries (standard operation):
+   \```
+   GET http://localhost:5159/api/Countries/GetCountries
+   \```
+
+2. Search for countries featuring the name "India":
+   \```
+   GET http://localhost:5159/api/Countries/GetCountries?searchString=India
+   \```
+
+3. Fetch countries possessing a population below 1 million:
+   \```
+   GET http://localhost:5159/api/Countries/GetCountries?populationLessThan=1000000
+   \```
+
+... [other examples are abbreviated for brevity] ...
+
+## Swagger Endpoint
+
+For comprehensive API documentation, you can utilize the Swagger UI by navigating to:
+[http://localhost:5159/swagger](http://localhost:5159/swagger)
+
+Swagger provides an interactive way to visualize and test your API's endpoints. Make sure to explore this tool to better understand the capabilities and functionalities of the CountryList app.
+Note: In the code snippets above, I've used ```` to represent the triple backticks used for code blocks in Markdown. In your actual Markdown file, you would use three backticks (```) without the backslash.
+
+
+
+
+User
+show all 10 examples in raw markdown
+ChatGPT
+Certainly! Here's the raw Markdown including all 10 examples:
+
+markdown
+Copy code
+# README for CountryList App
+
+## Application Description
+
+CountryList is a web application designed to offer users a detailed list of countries. Through its robust filtering capabilities, users can sift through countries based on specific criteria such as population, name, and more. The application interfaces with an external RESTful Countries API, harmonizing data extraction and user experience seamlessly. Beyond merely listing countries, the application introduces pagination, sorting, and filtering features, ensuring users can pinpoint their desired list effortlessly.
+
+Crafted for clarity and efficiency, CountryList stands as the preferred application for those eager to delve into or understand more about the world's nations. Capitalizing on the capabilities of ASP.NET Core, this application is distinguished by its performance, scalability, and user-friendly nature.
+
+## Running the Application Locally
+
+1. Ensure .NET Core SDK is set up on your computer.
+2. Clone the repository or download the source files.
+3. Transition to the project's root directory using your terminal or command prompt.
+4. To restore the project dependencies, input the command:
+dotnet restore
+
+bash
+Copy code
+5. To kickstart the application, type:
+dotnet run
+
+markdown
+Copy code
+6. After activation, access the application by directing to `http://localhost:5159` or the port showcased in the terminal.
+
+## Using the Developed Endpoint
+
+The primary endpoint designed for procuring countries is `GetCountries`. It accommodates multiple query parameters for concise filtering, orderly sorting, and straightforward pagination.
+
+Below are 10 instances illustrating the utilization of the `GetCountries` endpoint:
+
+1. Retrieve the initial 10 countries (standard operation):
+GET http://localhost:5159/api/Countries/GetCountries
+
+rust
+Copy code
+
+2. Search for countries featuring the name "India":
+GET http://localhost:5159/api/Countries/GetCountries?searchString=India
+
+css
+Copy code
+
+3. Fetch countries possessing a population below 1 million:
+GET http://localhost:5159/api/Countries/GetCountries?populationLessThan=1000000
+
+sql
+Copy code
+
+4. Obtain the second page of countries, using the default 10 countries per page:
+GET http://localhost:5159/api/Countries/GetCountries?pageNumber=2
+
+markdown
+Copy code
+
+5. Retrieve 20 countries per page:
+GET http://localhost:5159/api/Countries/GetCountries?pageSize=20
+
+csharp
+Copy code
+
+6. Arrange countries by name:
+GET http://localhost:5159/api/Countries/GetCountries?sortAttribute=name
+
+csharp
+Copy code
+
+7. Filter countries containing "land" and then sequence by name:
+GET http://localhost:5159/api/Countries/GetCountries?searchString=land&sortAttribute=name
+
+csharp
+Copy code
+
+8. Source countries with populations under 500,000, ordered by name:
+GET http://localhost:5159/api/Countries/GetCountries?populationLessThan=500000&sortAttribute=name
+
+sql
+Copy code
+
+9. Access the third set of countries, taking 5 countries per page:
+GET http://localhost:5159/api/Countries/GetCountries?pageNumber=3&pageSize=5
+
+sql
+Copy code
+
+10. Fuse multiple filters: isolate countries incorporating "United" in the name, with populations under 50 million, in name sequence, and acquire the second page showing 15 countries:
+GET http://localhost:5159/api/Countries/GetCountries?searchString=United&populationLessThan=50000000&sortAttribute=name&pageNumber=2&pageSize=15
+
+vbnet
+Copy code
+
+## Swagger Endpoint
+
+For comprehensive API documentation, you can utilize the Swagger UI by navigating to:
+[http://localhost:5159/swagger](http://localhost:5159/swagger)
+
+Swagger provides an interactive way to visualize and test your API's endpoints. Make sure to explore this tool to better understand the capabilities and functionalities of the CountryList app.
+You can simply copy and paste this into your Markdown editor or README file!
+
+
+
+
+User
+give me raw markdown that only contains 10 examples from Using the Developed Endpoint section
+ChatGPT
+Sure, here's the raw Markdown for just the 10 examples in the "Using the Developed Endpoint" section:
+
+markdown
+Copy code
+## Using the Developed Endpoint
+
+The primary endpoint designed for procuring countries is `GetCountries`. It accommodates multiple query parameters for concise filtering, orderly sorting, and straightforward pagination.
+
+Below are 10 instances illustrating the utilization of the `GetCountries` endpoint:
+
+1. Retrieve the initial 10 countries (standard operation):
+GET http://localhost:5159/api/Countries/GetCountries
+
+rust
+Copy code
+
+2. Search for countries featuring the name "India":
+GET http://localhost:5159/api/Countries/GetCountries?searchString=India
+
+css
+Copy code
+
+3. Fetch countries possessing a population below 1 million:
+GET http://localhost:5159/api/Countries/GetCountries?populationLessThan=1000000
+
+sql
+Copy code
+
+4. Obtain the second page of countries, using the default 10 countries per page:
+GET http://localhost:5159/api/Countries/GetCountries?pageNumber=2
+
+markdown
+Copy code
+
+5. Retrieve 20 countries per page:
+GET http://localhost:5159/api/Countries/GetCountries?pageSize=20
+
+csharp
+Copy code
+
+6. Arrange countries by name:
+GET http://localhost:5159/api/Countries/GetCountries?sortAttribute=name
+
+csharp
+Copy code
+
+7. Filter countries containing "land" and then sequence by name:
+GET http://localhost:5159/api/Countries/GetCountries?searchString=land&sortAttribute=name
+
+csharp
+Copy code
+
+8. Source countries with populations under 500,000, ordered by name:
+GET http://localhost:5159/api/Countries/GetCountries?populationLessThan=500000&sortAttribute=name
+
+sql
+Copy code
+
+9. Access the third set of countries, taking 5 countries per page:
+GET http://localhost:5159/api/Countries/GetCountries?pageNumber=3&pageSize=5
+
+sql
+Copy code
+
+10. Fuse multiple filters: isolate countries incorporating "United" in the name, with populations under 50 million, in name sequence, and acquire the second page showing 15 countries:
+GET http://localhost:5159/api/Countries/GetCountries?searchString=United&populationLessThan=50000000&sortAttribute=name&pageNumber=2&pageSize=15
+
+Copy code
+You can copy the above Markdown and use it as needed.
+
+
+
+
+User
+fix markdown here
+
+# Use Case #1 - .NET - Senior - Dima Panteliuk
+
+## Application Description
+CountryList is a web application designed to provide users with a comprehensive list of countries. With its powerful filters, users can search for countries based on certain criteria such as population, name, and more. The application interfaces with an external RESTful Countries API, bringing together a seamless combination of data extraction and user experience. Beyond just displaying countries, the application offers pagination, sorting, and filtering functionalities, ensuring that users can narrow down to the precise list they're seeking with minimal effort.
+
+Designed with simplicity and efficiency in mind, CountryList is the go-to application for those who wish to explore or learn more about the nations of the world. By leveraging the potential of ASP.NET Core, the application stands out in terms of performance, scalability, and ease of use.
+
+## Running the Application Locally
+
+1. Ensure .NET Core SDK is set up on your computer.
+2. Clone the repository or download the source files.
+3. Transition to the project's root directory using your terminal or command prompt.
+4. To restore the project dependencies, input the command:
+   \```
+   dotnet restore
+   \```
+5. To kickstart the application, type:
+   \```
+   dotnet run
+   \```
+6. After activation, access the application by directing to `http://localhost:5159` or the port showcased in the terminal.
+
+
+## Using the Developed Endpoint
+
+The primary endpoint designed for procuring countries is `GetCountries`. It accommodates multiple query parameters for concise filtering, orderly sorting, and straightforward pagination.
+
+Below are 10 instances illustrating the utilization of the `GetCountries` endpoint:
+
+1. Retrieve the initial 10 countries (standard operation):
+   \```
+   GET http://localhost:5159/api/Countries/GetCountries
+   \```
+
+2. Search for countries featuring the name "India":
+   \```
+   GET http://localhost:5159/api/Countries/GetCountries?searchString=India
+   \```
+
+3. Fetch countries possessing a population below 1 million:
+   \```
+   GET http://localhost:5159/api/Countries/GetCountries?populationLessThan=1000000
+   \```
+
+4. Obtain the second page of countries, using the default 10 countries per page:
+   \```
+   GET http://localhost:5159/api/Countries/GetCountries?pageNumber=2
+   \```
+
+5. Retrieve 20 countries per page:
+   \```
+   GET http://localhost:5159/api/Countries/GetCountries?pageSize=20
+   \```
+
+6. Arrange countries by name:
+   \```
+   GET http://localhost:5159/api/Countries/GetCountries?sortAttribute=name
+   \```
+
+7. Filter countries containing "land" and then sequence by name:
+   \```
+   GET http://localhost:5159/api/Countries/GetCountries?searchString=land&sortAttribute=name
+   \```
+8. Source countries with populations under 500,000, ordered by name:
+   \```
+   GET http://localhost:5159/api/Countries/GetCountries?populationLessThan=500000&sortAttribute=name
+   \```
+9. Access the third set of countries, taking 5 countries per page:
+   \```
+   GET http://localhost:5159/api/Countries/GetCountries?pageNumber=3&pageSize=5
+   \```
+10. Fuse multiple filters: isolate countries incorporating "United" in the name, with populations under 50 million, in name sequence, and acquire the second page showing 15 countries:
+   \```
+   GET http://localhost:5159/api/Countries/GetCountries?searchString=United&populationLessThan=50000000&sortAttribute=name&pageNumber=2&pageSize=15
+   \```
+
+## Swagger Endpoint
+
+For comprehensive API documentation, you can utilize the Swagger UI by navigating to:
+[http://localhost:5159/swagger](http://localhost:5159/swagger)
+
+Swagger provides an interactive way to visualize and test your API's endpoints. Make sure to explore this tool to better understand the capabilities and functionalities of the CountryList app.
+ChatGPT
+Certainly! I noticed that you're using the characters ````, which are likely not rendering the code blocks correctly. Let's use the proper three backticks (```) for the Markdown code blocks.
+
+Here's the corrected Markdown:
+
+markdown
+Copy code
+# Use Case #1 - .NET - Senior - Dima Panteliuk
+
+## Application Description
+CountryList is a web application designed to provide users with a comprehensive list of countries. With its powerful filters, users can search for countries based on certain criteria such as population, name, and more. The application interfaces with an external RESTful Countries API, bringing together a seamless combination of data extraction and user experience. Beyond just displaying countries, the application offers pagination, sorting, and filtering functionalities, ensuring that users can narrow down to the precise list they're seeking with minimal effort.
+
+Designed with simplicity and efficiency in mind, CountryList is the go-to application for those who wish to explore or learn more about the nations of the world. By leveraging the potential of ASP.NET Core, the application stands out in terms of performance, scalability, and ease of use.
+
+## Running the Application Locally
+
+1. Ensure .NET Core SDK is set up on your computer.
+2. Clone the repository or download the source files.
+3. Transition to the project's root directory using your terminal or command prompt.
+4. To restore the project dependencies, input the command:
+dotnet restore
+
+bash
+Copy code
+5. To kickstart the application, type:
+dotnet run
+
+markdown
+Copy code
+6. After activation, access the application by directing to `http://localhost:5159` or the port showcased in the terminal.
+
+## Using the Developed Endpoint
+
+The primary endpoint designed for procuring countries is `GetCountries`. It accommodates multiple query parameters for concise filtering, orderly sorting, and straightforward pagination.
+
+Below are 10 instances illustrating the utilization of the `GetCountries` endpoint:
+
+1. Retrieve the initial 10 countries (standard operation):
+GET http://localhost:5159/api/Countries/GetCountries
+
+rust
+Copy code
+
+2. Search for countries featuring the name "India":
+GET http://localhost:5159/api/Countries/GetCountries?searchString=India
+
+css
+Copy code
+
+3. Fetch countries possessing a population below 1 million:
+GET http://localhost:5159/api/Countries/GetCountries?populationLessThan=1000000
+
+sql
+Copy code
+
+4. Obtain the second page of countries, using the default 10 countries per page:
+GET http://localhost:5159/api/Countries/GetCountries?pageNumber=2
+
+markdown
+Copy code
+
+5. Retrieve 20 countries per page:
+GET http://localhost:5159/api/Countries/GetCountries?pageSize=20
+
+csharp
+Copy code
+
+6. Arrange countries by name:
+GET http://localhost:5159/api/Countries/GetCountries?sortAttribute=name
+
+csharp
+Copy code
+
+7. Filter countries containing "land" and then sequence by name:
+GET http://localhost:5159/api/Countries/GetCountries?searchString=land&sortAttribute=name
+
+csharp
+Copy code
+8. Source countries with populations under 500,000, ordered by name:
+GET http://localhost:5159/api/Countries/GetCountries?populationLessThan=500000&sortAttribute=name
+
+sql
+Copy code
+9. Access the third set of countries, taking 5 countries per page:
+GET http://localhost:5159/api/Countries/GetCountries?pageNumber=3&pageSize=5
+
+sql
+Copy code
+10. Fuse multiple filters: isolate countries incorporating "United" in the name, with populations under 50 million, in name sequence, and acquire the second page showing 15 countries:
+GET http://localhost:5159/api/Countries/GetCountries?searchString=United&populationLessThan=50000000&sortAttribute=name&pageNumber=2&pageSize=15
+
+vbnet
+Copy code
+
+## Swagger Endpoint
+
+For comprehensive API documentation, you can utilize the Swagger UI by navigating to:
+[http://localhost:5159/swagger](http://localhost:5159/swagger)
+
+Swagger provides an interactive way to visualize and test your API's endpoints. Make sure to explore this tool to better understand the capabilities and functionalities of the CountryList app.
+You can now copy and paste the corrected Markdown.
