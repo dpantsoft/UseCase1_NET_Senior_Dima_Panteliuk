@@ -1,3 +1,5 @@
+using UseCase1.Services; 
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -8,6 +10,8 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddHttpClient();
+
+builder.Services.AddTransient<ICountryService, CountryService>();
 
 var app = builder.Build();
 
