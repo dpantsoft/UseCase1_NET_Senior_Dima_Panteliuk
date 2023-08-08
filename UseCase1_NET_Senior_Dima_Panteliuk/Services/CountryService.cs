@@ -6,6 +6,7 @@ namespace UseCase1.Services {
     public interface ICountryService
     {
         IEnumerable<Country> FilterCountriesByName(List<Country> countries, string searchString);
+        IEnumerable<Country> GetCountriesByPage(List<Country> countries, int pageNumber, int pageSize);
         IEnumerable<Country> SortCountriesByName(List<Country> countries, string sortAttribute);
     }
 
@@ -17,6 +18,11 @@ namespace UseCase1.Services {
                 return countries;
 
             return countries.Where(country => country.Name.ToLower().Contains(searchString.ToLower()));
+        }
+
+        public IEnumerable<Country> GetCountriesByPage(List<Country> countries, int pageNumber, int pageSize)
+        {
+            return countries.Skip((pageNumber - 1) * pageSize).Take(pageSize);
         }
 
         public IEnumerable<Country> SortCountriesByName(List<Country> countries, string sortAttribute)
