@@ -13,6 +13,7 @@ $RECYCLE.BIN/
 
 # VS Code directories
 .vscode/
+.vs/
 *.code-workspace
 
 # Windows image file caches

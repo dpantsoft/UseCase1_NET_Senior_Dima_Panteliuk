@@ -16,28 +16,48 @@ namespace UseCase1.Controllers
         private readonly IHttpClientFactory _clientFactory;
         private readonly ICountryService _countryService;  // 1. Inject the country service
         private readonly string _countriesApiUrl;
+        private readonly JsonSerializerOptions _serializerOptions;
 
         public CountriesController(IHttpClientFactory clientFactory, IConfiguration configuration, ICountryService countryService)  // 2. Add the ICountryService in constructor
         {
             _clientFactory = clientFactory;
             _countryService = countryService;   // 3. Assign the country service
-            _countriesApiUrl = configuration.GetValue<string>("CountriesApi:Url");  
+            _countriesApiUrl = configuration.GetValue<string>("CountriesApi:Url");
+
+            _serializerOptions = new JsonSerializerOptions();
+            _serializerOptions.Converters.Add(new CountryConverter());
+
         }
 
         [HttpGet("GetCountries")]
-        public async Task<IActionResult> GetCountries([FromQuery] string searchString)  // 4. Add the searchString query parameter
+        public async Task<IActionResult> GetCountries(
+            [FromQuery] string searchString,
+            [FromQuery] int pageNumber = 1,       // For pagination
+            [FromQuery] int pageSize = 10,        // Default page size is set to 10
+            [FromQuery] string sortAttribute = "" // For sorting
+        )
         {
             var client = _clientFactory.CreateClient();
 
             try
             {
                 var response = await client.GetStringAsync(_countriesApiUrl);
-                var countries = JsonSerializer.Deserialize<List<Country>>(response);  // 5. Deserialize the response to a list of countries
+                var countries = JsonSerializer.Deserialize<List<Country>>(response, _serializerOptions);  
 
+                // 1. Filter countries by name if searchString is provided
                 if (!string.IsNullOrWhiteSpace(searchString))
                 {
-                    countries = _countryService.FilterCountriesByName(countries, searchString).ToList();  // 6. Use the service to filter the countries
+                    countries = _countryService.FilterCountriesByName(countries, searchString).ToList();
                 }
+
+                // 2. Sort countries by the given attribute if provided
+                if (!string.IsNullOrWhiteSpace(sortAttribute))
+                {
+                    countries = _countryService.SortCountriesByName(countries, sortAttribute).ToList();
+                }
+
+                // 3. Paginate the list of countries
+                countries = _countryService.GetCountriesByPage(countries, pageNumber, pageSize).ToList();
 
                 return Ok(countries);
             }
@@ -45,6 +65,6 @@ namespace UseCase1.Controllers
             {
                 return BadRequest($"Error fetching data from REST Countries API: {e.Message}");
             }
-        }
+        }        
     }
 }
