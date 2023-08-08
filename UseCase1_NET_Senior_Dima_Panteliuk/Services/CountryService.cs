@@ -6,6 +6,7 @@ namespace UseCase1.Services {
     public interface ICountryService
     {
         IEnumerable<Country> FilterCountriesByName(List<Country> countries, string searchString);
+        IEnumerable<Country> FilterCountriesByPopulation(List<Country> countries, int populationInMillions);
         IEnumerable<Country> GetCountriesByPage(List<Country> countries, int pageNumber, int pageSize);
         IEnumerable<Country> SortCountriesByName(List<Country> countries, string sortAttribute);
     }
@@ -18,6 +19,16 @@ namespace UseCase1.Services {
                 return countries;
 
             return countries.Where(country => country.Name.ToLower().Contains(searchString.ToLower()));
+        }
+
+        public IEnumerable<Country> FilterCountriesByPopulation(List<Country> countries, int populationInMillions)
+        {
+            if (populationInMillions <= 0)
+                return countries;
+
+            int population = populationInMillions * 1_000_000; // Convert population in millions to absolute population
+
+            return countries.Where(country => country.Population < population);
         }
 
         public IEnumerable<Country> GetCountriesByPage(List<Country> countries, int pageNumber, int pageSize)

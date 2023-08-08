@@ -13,7 +13,16 @@ namespace UseCase1.Services
                 var root = doc.RootElement;
                 var commonName = root.GetProperty("name").GetProperty("common").GetString();
 
-                return new Country { Name = commonName };
+                // Extract the population field
+                var population = root.TryGetProperty("population", out var populationElement)
+                                 ? populationElement.GetInt32()
+                                 : 0;  // Default to 0 if not present, adjust as needed
+
+                return new Country
+                {
+                    Name = commonName,
+                    Population = population
+                };
             }
         }
 

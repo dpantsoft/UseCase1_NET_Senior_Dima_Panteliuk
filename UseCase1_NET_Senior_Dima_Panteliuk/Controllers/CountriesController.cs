@@ -31,7 +31,8 @@ namespace UseCase1.Controllers
 
         [HttpGet("GetCountries")]
         public async Task<IActionResult> GetCountries(
-            [FromQuery] string searchString,
+            [FromQuery] string? searchString,
+            [FromQuery] int? populationLessThan = null,    // Filter for population
             [FromQuery] int pageNumber = 1,       // For pagination
             [FromQuery] int pageSize = 10,        // Default page size is set to 10
             [FromQuery] string sortAttribute = "" // For sorting
@@ -42,12 +43,18 @@ namespace UseCase1.Controllers
             try
             {
                 var response = await client.GetStringAsync(_countriesApiUrl);
-                var countries = JsonSerializer.Deserialize<List<Country>>(response, _serializerOptions);  
+                var countries = JsonSerializer.Deserialize<List<Country>>(response, _serializerOptions);
 
                 // 1. Filter countries by name if searchString is provided
                 if (!string.IsNullOrWhiteSpace(searchString))
                 {
                     countries = _countryService.FilterCountriesByName(countries, searchString).ToList();
+                }
+
+                // 1.1 Filter countries by population if populationLessThan is provided
+                if (populationLessThan.HasValue && populationLessThan.Value > 0)
+                {
+                    countries = _countryService.FilterCountriesByPopulation(countries, populationLessThan.Value).ToList();
                 }
 
                 // 2. Sort countries by the given attribute if provided
