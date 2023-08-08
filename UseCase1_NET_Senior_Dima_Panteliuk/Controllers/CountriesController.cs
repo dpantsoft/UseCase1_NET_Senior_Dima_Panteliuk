@@ -1,36 +1,42 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Text.Json;
 
-[Route("api/[controller]")]
-[ApiController]
-public class CountriesController : ControllerBase
+namespace MyApiProject.Controllers
 {
-    private readonly IHttpClientFactory _clientFactory;
-
-    public CountriesController(IHttpClientFactory clientFactory)
+    [Route("api/[controller]")]
+    [ApiController]
+    public class CountriesController : ControllerBase
     {
-        _clientFactory = clientFactory;
-    }
+        private readonly IHttpClientFactory _clientFactory;
+        private readonly string _countriesApiUrl;
 
-    [HttpGet("GetCountries")]
-    public async Task<IActionResult> GetCountries()
-    {
-        var client = _clientFactory.CreateClient();
-
-        try
+        public CountriesController(IHttpClientFactory clientFactory, IConfiguration configuration)
         {
-            var response = await client.GetStringAsync("https://restcountries.com/v3.1/all");
-            var result = JsonSerializer.Deserialize<object>(response);
-
-            // The result variable now holds the parsed data. Do whatever you need with it.
-            // For now, just returning it for demonstration.
-            return Ok(result);
+            _clientFactory = clientFactory;
+            _countriesApiUrl = configuration.GetValue<string>("CountriesApi:Url");  // 2. Fetch URL from configuration
         }
-        catch (HttpRequestException e)
+
+        [HttpGet("GetCountries")]
+        public async Task<IActionResult> GetCountries()
         {
-            return BadRequest($"Error fetching data from REST Countries API: {e.Message}");
+            var client = _clientFactory.CreateClient();
+
+            try
+            {
+                var response = await client.GetStringAsync(_countriesApiUrl);  // 2. Use the variable instead of hardcoded URL
+                var result = JsonSerializer.Deserialize<object>(response);
+
+                // The result variable now holds the parsed data. Do whatever you need with it.
+                // For now, just returning it for demonstration.
+                return Ok(result);
+            }
+            catch (HttpRequestException e)
+            {
+                return BadRequest($"Error fetching data from REST Countries API: {e.Message}");
+            }
         }
     }
 }
