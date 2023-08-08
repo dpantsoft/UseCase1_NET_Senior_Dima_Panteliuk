@@ -6,6 +6,7 @@ namespace UseCase1.Services {
     public interface ICountryService
     {
         IEnumerable<Country> FilterCountriesByName(List<Country> countries, string searchString);
+        IEnumerable<Country> SortCountriesByName(List<Country> countries, string sortAttribute);
     }
 
     public class CountryService : ICountryService
@@ -16,6 +17,22 @@ namespace UseCase1.Services {
                 return countries;
 
             return countries.Where(country => country.Name.ToLower().Contains(searchString.ToLower()));
+        }
+
+        public IEnumerable<Country> SortCountriesByName(List<Country> countries, string sortAttribute)
+        {
+            if (sortAttribute == "ascend")
+            {
+                return countries.OrderBy(country => country.Name);
+            }
+            else if (sortAttribute == "descend")
+            {
+                return countries.OrderByDescending(country => country.Name);
+            }
+            else
+            {
+                throw new ArgumentException("Invalid sort attribute provided. It should be either 'ascend' or 'descend'.");
+            }
         }
     }
 }

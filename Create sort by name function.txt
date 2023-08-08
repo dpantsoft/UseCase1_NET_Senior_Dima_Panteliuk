@@ -1,0 +1,70 @@
+I have file
+using System.Collections.Generic;
+using System.Linq;
+using UseCase1.Models;
+
+namespace UseCase1.Services {
+    public interface ICountryService
+    {
+        IEnumerable<Country> FilterCountriesByName(List<Country> countries, string searchString);
+    }
+
+    public class CountryService : ICountryService
+    {
+        public IEnumerable<Country> FilterCountriesByName(List<Country> countries, string searchString)
+        {
+            if (string.IsNullOrEmpty(searchString))
+                return countries;
+
+            return countries.Where(country => country.Name.ToLower().Contains(searchString.ToLower()));
+        }
+    }
+}
+	Create a function that accepts a string as an attribute and can sort data by ` name/common `. 
+o	The sort should accept string ` ascend or descend ` and sort countries name by provided attribute (e.g. providing attribute ascend all countries should be sorted from A to Z)
+
+ChatGPT
+Sure, I understand that you want to add a new function to your ICountryService interface and CountryService class to sort the countries by their name, either in ascending or descending order based on the provided string attribute.
+
+Firstly, modify the ICountryService interface by adding a new method declaration:
+
+csharp
+Copy code
+public interface ICountryService
+{
+    IEnumerable<Country> FilterCountriesByName(List<Country> countries, string searchString);
+    IEnumerable<Country> SortCountriesByName(List<Country> countries, string sortAttribute);
+}
+Now, let's implement the SortCountriesByName method in the CountryService class:
+
+csharp
+Copy code
+public class CountryService : ICountryService
+{
+    public IEnumerable<Country> FilterCountriesByName(List<Country> countries, string searchString)
+    {
+        if (string.IsNullOrEmpty(searchString))
+            return countries;
+
+        return countries.Where(country => country.Name.ToLower().Contains(searchString.ToLower()));
+    }
+
+    public IEnumerable<Country> SortCountriesByName(List<Country> countries, string sortAttribute)
+    {
+        if (sortAttribute == "ascend")
+        {
+            return countries.OrderBy(country => country.Name);
+        }
+        else if (sortAttribute == "descend")
+        {
+            return countries.OrderByDescending(country => country.Name);
+        }
+        else
+        {
+            throw new ArgumentException("Invalid sort attribute provided. It should be either 'ascend' or 'descend'.");
+        }
+    }
+}
+With the above changes, you can now sort your list of countries by their names either in ascending or descending order based on the provided attribute.
+
+Note: It would be beneficial to consider adding some error handling mechanisms if you anticipate receiving invalid sort attributes.
