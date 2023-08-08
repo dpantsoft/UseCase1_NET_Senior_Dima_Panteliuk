@@ -159,18 +159,6 @@ artifacts/
 Thumbs.db
 ehthumbs.db
 
-# Unreal Engine 4
-*.ue4depotcache
-*.sln
-*.suo
-*.dbmdl
-*.bak
-Saved/
-Intermediate/
-Logs/
-Binaries/
-DerivedDataCache/
-
 # Ignore the build output folder
 bin/
 obj/
